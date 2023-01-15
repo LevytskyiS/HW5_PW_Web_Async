@@ -20,11 +20,11 @@ async def main():
 
                 tasks = [usd, eur]
                 responses = await asyncio.gather(*tasks)
-                for response in responses:
-                    for key, value in response.items():
-                        print(value, type(value))
-                        for v in value.values():
-                            print(v)
+                # for response in responses:
+                #     for key, value in response.items():
+                #         print(value, type(value))
+                #         for v in value.values():
+                #             print(v)
 
                 return responses
 
@@ -41,3 +41,4 @@ if __name__ == "__main__":
     start = time.time()
     currency = asyncio.run(main())
     print(time.time() - start)
+    print(currency)
