@@ -1,84 +1,66 @@
-import time
-from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from collections import defaultdict
+from urllib.parse import urlparse, urlunparse
 
 
-class GettCurrency(metaclass=ABCMeta):
-    def __init__(self) -> None:
-        self.today = datetime.today()
-        self.formatted_date = self.today.strftime("%d.%m.%Y")
-        self.pb_url = f"https://api.privatbank.ua/p24api/exchange_rates?json&date={self.formatted_date}"
+class GettCurrency:
 
-    @abstractmethod
-    def get_currency():
-        pass
+    EUR = "EUR"
+    USD = "USD"
+    today = datetime.today()
+    api_url = f"https://api.privatbank.ua/p24api/exchange_rates?json&date=16.01.2023"
 
+    def change_bank_api(new_api_url):
 
-class GetUSD(GettCurrency):
-    async def get_currency(self, session, days):
+        GettCurrency.api_url = new_api_url
 
-        data = {}
+    def change_api_query_date():
 
-        while days != 0:
+        parsed_url = urlparse(GettCurrency.api_url)
+        new_query = f"{'json&date'}={(GettCurrency.today - timedelta(days=1)).strftime('%d.%m.%Y')}"
+        corrected_api_url = parsed_url._replace(query=new_query)
+        GettCurrency.api_url = urlunparse(corrected_api_url)
 
-            async with session.get(self.pb_url) as response:
-                start = time.time()
-                print(f"Start getting USD")
-                result = await response.json()
-                ex_rates = result["exchangeRate"]
+    async def get_currency(session, days):
 
-                for rate in ex_rates:
-                    if "USD" in rate.values():
-                        data.update({f"{self.formatted_date}": rate})
-
-                self.today -= timedelta(days=1)
-                self.formatted_date = self.today.strftime("%d.%m.%Y")
-                self.pb_url = f"https://api.privatbank.ua/p24api/exchange_rates?json&date={self.formatted_date}"
-                days -= 1
-                print(f"Done USD in {time.time() - start}")
-
-        return data
-
-
-class GetEUR(GettCurrency):
-    async def get_currency(self, session, days):
-        data = {}
+        data = []
 
         while days != 0:
 
-            async with session.get(self.pb_url) as response:
-                start = time.time()
-                print(f"Start getting EUR")
-                result = await response.json()
-                ex_rates = result["exchangeRate"]
+            async with session.get(GettCurrency.api_url) as response:
+
+                if response.status != 200:
+                    data.append({str(response.status): GettCurrency.api_url})
+
+                json_data = await response.json()
+                ex_rates = json_data["exchangeRate"]
 
                 for rate in ex_rates:
-                    if "EUR" in rate.values():
-                        data.update({f"{self.formatted_date}": rate})
+                    if GettCurrency.USD in rate.values():
+                        data.append({json_data["date"]: rate})
+                    if GettCurrency.EUR in rate.values():
+                        data.append({json_data["date"]: rate})
 
-                self.today -= timedelta(days=1)
-                self.formatted_date = self.today.strftime("%d.%m.%Y")
-                self.pb_url = f"https://api.privatbank.ua/p24api/exchange_rates?json&date={self.formatted_date}"
+                GettCurrency.change_api_query_date()
                 days -= 1
-                print(f"Done EUR in {time.time() - start}")
 
         return data
 
 
 class PrepareFinalResult:
-    def prepare_final_result(self, responses: list):
+    def prepare_final_result(responses: list):
 
         result = defaultdict(list)
         dates = []
         currencies = []
+        final_result = []
 
         for response in responses:
             for key, value in response.items():
                 val = {
                     value["currency"]: {
-                        "Sale": value["saleRateNB"],
-                        "Purchase": value["purchaseRateNB"],
+                        "Sale": round(value["saleRateNB"], 2),
+                        "Purchase": round(value["purchaseRateNB"], 2),
                     }
                 }
                 dates.append(key)
@@ -86,11 +68,10 @@ class PrepareFinalResult:
 
         for d, c in zip(dates, currencies):
             result[d].append(c)
-        final_result = []
 
         for key, value in result.items():
             a, b, *_ = value
-            dcr = {key: {"USD": a["USD"], "EUR": b["EUR"]}}
+            dcr = {key: {"EUR": a["EUR"], "USD": b["USD"]}}
             if dcr not in final_result:
                 final_result.append(dcr)
 

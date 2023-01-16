@@ -2,10 +2,15 @@ import asyncio
 import aiohttp
 import sys
 import time
-from get_usd_eur import GetUSD, GetEUR, PrepareFinalResult
+import platform
+from get_usd_eur import GettCurrency, PrepareFinalResult
 
 
-DAYS = [day for day in range(11)]
+async def find_currencies(session, days):
+
+    futures = await GettCurrency.get_currency(session, days)
+
+    return PrepareFinalResult.prepare_final_result(futures)
 
 
 async def main():
@@ -14,27 +19,19 @@ async def main():
 
         try:
             search_days = int(sys.argv[1])
-            if search_days in DAYS:
-                usd = asyncio.create_task(GetUSD().get_currency(session, search_days))
-                eur = asyncio.create_task(GetEUR().get_currency(session, search_days))
+        except (IndexError, ValueError) as error:
+            return error
 
-                tasks = [usd, eur]
-                responses = await asyncio.gather(*tasks)
-                result = PrepareFinalResult().prepare_final_result(responses)
-
-                return result
-
-            else:
-                return "You can check the currency of a maximum period of 10 days."
-
-        except IndexError as error:
-            print(error)
-        except ValueError as error:
-            print(error)
+        if 0 < search_days < 11:
+            return await find_currencies(session, search_days)
+        else:
+            return "You can check the currency of a maximum period of 10 days."
 
 
 if __name__ == "__main__":
     start = time.time()
+    if platform.system() == "Windows":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     currency = asyncio.run(main())
     print(time.time() - start)
     print(currency)
