@@ -89,8 +89,8 @@ class PrepareFinalResult:
             result[d].append(c)
 
         for key, value in result.items():
-            a, b, *_ = value
-            dcr = {key: {"USD": a["USD"], "EUR": b["EUR"]}}
+            usd, eur, *_ = value
+            dcr = {key: {"USD": usd["USD"], "EUR": eur["EUR"]}}
             if dcr not in final_result:
                 final_result.append(dcr)
 
