@@ -47,12 +47,12 @@ class GettCurrency:
                 if self.EUR == "EUR":
                     eur = asyncio.create_task(self.get_usd_eur(response, self.EUR))
                 else:
-                    continue
+                    eur = asyncio.sleep(1)
 
                 if self.USD == "USD":
                     usd = asyncio.create_task(self.get_usd_eur(response, self.USD))
                 else:
-                    continue
+                    usd = asyncio.sleep(1)
 
                 tasks = [eur, usd]
                 await asyncio.gather(*tasks)

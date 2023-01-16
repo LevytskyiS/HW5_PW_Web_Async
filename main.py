@@ -10,6 +10,9 @@ async def find_currencies(session, days):
 
     futures = await GettCurrency().get_currency(session, days)
 
+    if not futures:
+        return f"No currencies have been found"
+
     return PrepareFinalResult.prepare_final_result(futures)
 
 
