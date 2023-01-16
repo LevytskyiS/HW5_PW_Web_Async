@@ -72,6 +72,7 @@ class PrepareFinalResult:
         result = defaultdict(list)
         dates = []
         currencies = []
+        final_result = []
 
         for response in responses:
             for key, value in response.items():
@@ -86,7 +87,6 @@ class PrepareFinalResult:
 
         for d, c in zip(dates, currencies):
             result[d].append(c)
-        final_result = []
 
         for key, value in result.items():
             a, b, *_ = value
