@@ -8,7 +8,7 @@ from get_usd_eur import GettCurrency, PrepareFinalResult
 
 async def find_currencies(session, days):
 
-    futures = await GettCurrency.get_currency(session, days)
+    futures = await GettCurrency().get_currency(session, days)
 
     return PrepareFinalResult.prepare_final_result(futures)
 

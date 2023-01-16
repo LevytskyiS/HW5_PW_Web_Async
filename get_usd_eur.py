@@ -1,50 +1,62 @@
+import time
+import asyncio
 from datetime import datetime, timedelta
 from collections import defaultdict
 from urllib.parse import urlparse, urlunparse
 
 
 class GettCurrency:
+    def __init__(
+        self,
+        today=datetime.today(),
+        api_url=f"https://api.privatbank.ua/p24api/exchange_rates?json&date=16.01.2023",
+        currencies=["EUR", "USD"],
+    ):
 
-    EUR = "EUR"
-    USD = "USD"
-    today = datetime.today()
-    api_url = f"https://api.privatbank.ua/p24api/exchange_rates?json&date=16.01.2023"
+        self.EUR, self.USD, *_ = currencies
+        self.today = today
+        self.api_url = api_url
+        self.data = []
 
-    def change_bank_api(new_api_url):
+    def change_api_query_date(self):
 
-        GettCurrency.api_url = new_api_url
-
-    def change_api_query_date():
-
-        parsed_url = urlparse(GettCurrency.api_url)
-        new_query = f"{'json&date'}={(GettCurrency.today - timedelta(days=1)).strftime('%d.%m.%Y')}"
+        parsed_url = urlparse(self.api_url)
+        self.today = self.today - timedelta(days=1)
+        new_query = f"{'json&date'}={self.today.strftime('%d.%m.%Y')}"
         corrected_api_url = parsed_url._replace(query=new_query)
-        GettCurrency.api_url = urlunparse(corrected_api_url)
+        self.api_url = urlunparse(corrected_api_url)
 
-    async def get_currency(session, days):
+    async def get_usd_eur(self, response, currency: str):
 
-        data = []
+        json_data = await response.json()
+        ex_rates = json_data["exchangeRate"]
+
+        for rate in ex_rates:
+            if currency in rate.values():
+                self.data.append({json_data["date"]: rate})
+
+    async def get_currency(self, session, days):
 
         while days != 0:
 
-            async with session.get(GettCurrency.api_url) as response:
+            async with session.get(self.api_url) as response:
 
                 if response.status != 200:
-                    data.append({str(response.status): GettCurrency.api_url})
+                    self.data.append({str(response.status): self.api_url})
 
-                json_data = await response.json()
-                ex_rates = json_data["exchangeRate"]
+                if self.EUR == "EUR":
+                    eur = asyncio.create_task(self.get_usd_eur(response, self.EUR))
 
-                for rate in ex_rates:
-                    if GettCurrency.USD in rate.values():
-                        data.append({json_data["date"]: rate})
-                    if GettCurrency.EUR in rate.values():
-                        data.append({json_data["date"]: rate})
+                if self.USD == "USD":
+                    usd = asyncio.create_task(self.get_usd_eur(response, self.USD))
 
-                GettCurrency.change_api_query_date()
+                tasks = [eur, usd]
+                await asyncio.gather(*tasks)
+
+                self.change_api_query_date()
                 days -= 1
 
-        return data
+        return self.data
 
 
 class PrepareFinalResult:
