@@ -54,7 +54,6 @@ class PrepareFinalResult:
         dates = []
         currencies = []
         final_result = []
-        final_result = []
 
         for response in responses:
             for key, value in response.items():
@@ -72,7 +71,7 @@ class PrepareFinalResult:
 
         for key, value in result.items():
             a, b, *_ = value
-            dcr = {key: {"USD": a["USD"], "EUR": b["EUR"]}}
+            dcr = {key: {"EUR": a["EUR"], "USD": b["USD"]}}
             if dcr not in final_result:
                 final_result.append(dcr)
 
