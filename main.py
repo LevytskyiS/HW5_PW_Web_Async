@@ -2,7 +2,7 @@ import asyncio
 import aiohttp
 import sys
 import time
-from get_usd_eur import GetUSD, GetEUR
+from get_usd_eur import GetUSD, GetEUR, PrepareFinalResult
 
 
 DAYS = [day for day in range(11)]
@@ -20,13 +20,9 @@ async def main():
 
                 tasks = [usd, eur]
                 responses = await asyncio.gather(*tasks)
-                # for response in responses:
-                #     for key, value in response.items():
-                #         print(value, type(value))
-                #         for v in value.values():
-                #             print(v)
+                result = PrepareFinalResult().prepare_final_result(responses)
 
-                return responses
+                return result
 
             else:
                 return "You can check the currency of a maximum period of 10 days."
