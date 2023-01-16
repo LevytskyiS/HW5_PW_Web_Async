@@ -10,10 +10,8 @@ class GettCurrency:
         self,
         today=datetime.today(),
         api_url=f"https://api.privatbank.ua/p24api/exchange_rates?json&date=16.01.2023",
-        currencies=["EUR", "USD"],
     ):
 
-        self.EUR, self.USD, *_ = currencies
         self.today = today
         self.api_url = api_url
         self.data = []
@@ -35,7 +33,7 @@ class GettCurrency:
             if currency in rate.values():
                 self.data.append({json_data["date"]: rate})
 
-    async def get_currency(self, session, days):
+    async def get_currency(self, session, days, currency: list):
 
         while days != 0:
 
@@ -44,15 +42,13 @@ class GettCurrency:
                 if response.status != 200:
                     self.data.append({str(response.status): self.api_url})
 
-                if self.EUR == "EUR":
-                    eur = asyncio.create_task(self.get_usd_eur(response, self.EUR))
-                else:
-                    eur = asyncio.sleep(1)
+                for curr in currency:
 
-                if self.USD == "USD":
-                    usd = asyncio.create_task(self.get_usd_eur(response, self.USD))
-                else:
-                    usd = asyncio.sleep(1)
+                    if curr == "EUR":
+                        eur = asyncio.create_task(self.get_usd_eur(response, curr))
+
+                    if curr == "USD":
+                        usd = asyncio.create_task(self.get_usd_eur(response, curr))
 
                 tasks = [eur, usd]
                 await asyncio.gather(*tasks)
